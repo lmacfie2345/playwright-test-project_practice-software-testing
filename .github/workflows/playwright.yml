@@ -1,0 +1,75 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: E2E (all browsers)
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    env:
+      CI: 'true'
+      BASE_URL: ${{ vars.BASE_URL || 'https://practicesoftwaretesting.com' }}
+      API_URL: ${{ vars.API_URL || 'https://api.practicesoftwaretesting.com' }}
+      CUSTOMER_EMAIL: ${{ secrets.CUSTOMER_EMAIL }}
+      CUSTOMER_PASSWORD: ${{ secrets.CUSTOMER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get Playwright version
+        id: pw
+        shell: bash
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Install Playwright OS deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run Playwright tests
+        run: npm test
+
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report
+          path: blob-report/
+          retention-days: 14
