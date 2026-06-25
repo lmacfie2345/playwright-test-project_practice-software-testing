@@ -26,8 +26,8 @@ async function saveState(file: string, baseURL: string, token: string): Promise<
 setup('authenticate as customer', async ({ apiClient, baseURL }) => {
   const email = process.env.CUSTOMER_EMAIL;
   const password = process.env.CUSTOMER_PASSWORD;
-  expect(email, 'CUSTOMER_EMAIL must be set in .env').toBeTruthy();
-  expect(password, 'CUSTOMER_PASSWORD must be set in .env').toBeTruthy();
+  expect(email, 'CUSTOMER_EMAIL must be set  (via .env locally or CI secrets)').toBeTruthy();
+  expect(password, 'CUSTOMER_PASSWORD must be set  (via .env locally or CI secrets)').toBeTruthy();
 
   const token = await apiClient.getToken(email!, password!);
   expect(token, 'customer login returned no access_token').toBeTruthy();
@@ -38,8 +38,8 @@ setup('authenticate as customer', async ({ apiClient, baseURL }) => {
 setup('authenticate as admin', async ({ apiClient, baseURL }) => {
   const email = process.env.ADMIN_EMAIL;
   const password = process.env.ADMIN_PASSWORD;
-  expect(email, 'ADMIN_EMAIL must be set in .env').toBeTruthy();
-  expect(password, 'ADMIN_PASSWORD must be set in .env').toBeTruthy();
+  expect(email, 'ADMIN_EMAIL must be set  (via .env locally or CI secrets)').toBeTruthy();
+  expect(password, 'ADMIN_PASSWORD must be set  (via .env locally or CI secrets)').toBeTruthy();
 
   const token = await apiClient.getToken(email!, password!);
   expect(token, 'admin login returned no access_token').toBeTruthy();
