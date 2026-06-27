@@ -14,9 +14,13 @@ test.describe('Customer account @smoke', () => {
     await expect(accountPage.profileLink).toBeVisible();
   });
 
-  test('shows the account menu instead of sign-in @regression', async ({ accountPage }) => {
+  test('shows the account menu instead of sign-in @regression', async ({ accountPage, isMobile }) => {
     await accountPage.goto('/');
-
+ 
+    // eslint-disable-next-line playwright/no-conditional-in-test
+    if(isMobile) {
+     await accountPage.toggleNavMenu.click();
+    }
     await expect(accountPage.navMenu).toBeVisible();
     await expect(accountPage.navSignIn).toBeHidden();
   });

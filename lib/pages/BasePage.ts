@@ -16,6 +16,7 @@ export abstract class BasePage {
   readonly navMyAccount: Locator;
   readonly navCart: Locator;
   readonly navAdminDashboard: Locator;
+  readonly toggleNavMenu: Locator;
 
   constructor(protected readonly page: Page) {
     this.navHome = page.getByTestId('nav-home');
@@ -27,6 +28,7 @@ export abstract class BasePage {
     this.navMyAccount = page.getByTestId('nav-my-account');
     this.navCart = page.getByTestId('nav-cart');
     this.navAdminDashboard = page.getByTestId('nav-admin-dashboard');
+    this.toggleNavMenu = page.getByRole('button', { name: 'Toggle navigation' });
   }
 
   /** Navigate to a path relative to baseURL and wait for the network to settle. */

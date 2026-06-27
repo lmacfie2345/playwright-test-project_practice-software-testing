@@ -7,8 +7,12 @@ import { test, expect } from '@fixtures/pages';
 test.use({ storageState: '.auth/admin.json' });
 
 test.describe('Admin @smoke', () => {
-  test('admin sees the dashboard menu entry @regression', async ({ accountPage }) => {
+  test('admin sees the dashboard menu entry @regression', async ({ accountPage,isMobile }) => {
     await accountPage.goto('/');
+    // eslint-disable-next-line playwright/no-conditional-in-test
+    if(isMobile) {
+     await accountPage.toggleNavMenu.click();
+    }
     await accountPage.navMenu.click();
 
     await expect(accountPage.navAdminDashboard).toBeVisible();
