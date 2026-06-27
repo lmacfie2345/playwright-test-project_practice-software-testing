@@ -16,15 +16,23 @@ const isCI = !!process.env.CI;
  * and one mobile viewport. Each browser yields a `no-auth` and `authenticated`
  * project (the two-project split is replicated per browser).
  */
-const browsers = isCI
-  ? [
-      { name: 'chromium', use: devices['Desktop Chrome'] },
-      { name: 'firefox', use: devices['Desktop Firefox'] },
-      { name: 'webkit', use: devices['Desktop Safari'] },
-      { name: 'mobile-chrome', use: devices['Pixel 5'] },
-    ]
-  : [{ name: 'chromium', use: devices['Desktop Chrome'] }];
+// const browsers = isCI
+//   ? [
+//       { name: 'chromium', use: devices['Desktop Chrome'] },
+//       { name: 'firefox', use: devices['Desktop Firefox'] },
+//       { name: 'webkit', use: devices['Desktop Safari'] },
+//       { name: 'mobile-chrome', use: devices['Pixel 5'] },
+//     ]
+//   : [{ name: 'chromium', use: devices['Desktop Chrome'] }];
 
+const browsers =
+   [
+     { name: 'chromium', use: devices['Desktop Chrome'] },
+     { name: 'firefox', use: devices['Desktop Firefox'] },
+     { name: 'webkit', use: devices['Desktop Safari'] },
+     { name: 'mobile-Mozilla', use: devices['iPhone 15'] },
+    ]
+ 
 const testProjects = browsers.flatMap((browser) => [
   {
     name: `no-auth-${browser.name}`,

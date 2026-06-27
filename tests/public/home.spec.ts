@@ -14,9 +14,12 @@ test.describe('Home / catalog @smoke', () => {
     await expect(catalogPage.productPrices.first()).toBeVisible();
   });
 
-  test('shows the sign-in link when logged out @regression', async ({ catalogPage }) => {
+  test('shows the sign-in link when logged out @regression', async ({ catalogPage,isMobile }) => {
     await catalogPage.open();
-
+      // eslint-disable-next-line playwright/no-conditional-in-test
+     if(isMobile) {
+     await catalogPage.toggleNavMenu.click();
+    }
     await expect(catalogPage.navSignIn).toBeVisible();
     await expect(catalogPage.navMenu).toBeHidden();
   });

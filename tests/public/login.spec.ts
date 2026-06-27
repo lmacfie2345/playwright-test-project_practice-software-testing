@@ -10,10 +10,13 @@ import { test, expect } from '@fixtures/pages';
  * keeps those lockouts off any shared user, so the suite stays deterministic.
  */
 test.describe('Login @smoke', () => {
-  test('customer can log in through the UI @regression', async ({ loginPage, registeredUser }) => {
+  test('customer can log in through the UI @regression', async ({ loginPage, registeredUser,isMobile }) => {
     await loginPage.open();
     await loginPage.login(registeredUser.email, registeredUser.password);
-
+      // eslint-disable-next-line playwright/no-conditional-in-test
+    if(isMobile) {
+     await loginPage.toggleNavMenu.click();
+    }
     // Successful login redirects to the account page and shows the account menu.
     await expect(loginPage.navMenu).toBeVisible();
     await expect(loginPage.navSignIn).toBeHidden();
