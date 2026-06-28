@@ -10,9 +10,15 @@ import { test, expect } from '@fixtures/pages';
  * keeps those lockouts off any shared user, so the suite stays deterministic.
  */
 test.describe('Login @smoke', () => {
-  test('customer can log in through the UI @regression', async ({ loginPage, registeredUser,isMobile }) => {
+  test('customer can log in through the UI @regression', async ({ loginPage, isMobile }) => {
+    const email = process.env.CUSTOMER_EMAIL;
+    const password = process.env.CUSTOMER_PASSWORD;
     await loginPage.open();
-    await loginPage.login(registeredUser.email, registeredUser.password);
+    // eslint-disable-next-line playwright/no-conditional-in-test
+    if (!email || !password) {
+          throw new Error('CUSTOMER_EMAIL and CUSTOMER_PASSWORD must be set in .env');
+  }
+    await loginPage.login(email, password);
       // eslint-disable-next-line playwright/no-conditional-in-test
     if(isMobile) {
      await loginPage.toggleNavMenu.click();
