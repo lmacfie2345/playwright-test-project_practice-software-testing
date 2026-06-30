@@ -66,14 +66,6 @@ jobs:
           path: playwright-report/
           retention-days: 14
 
-      - name: Upload blob report
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: blob-report
-          path: blob-report/
-          retention-days: 14
-
       - name: Upload test-results (screenshots/videos/traces)
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

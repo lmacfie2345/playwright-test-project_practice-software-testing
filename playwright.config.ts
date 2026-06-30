@@ -59,7 +59,7 @@ export default defineConfig<TestOptions>({
   },
   globalSetup: './global.setup.ts',
   reporter: isCI
-    ? [['list'], ['blob'], ['junit', { outputFile: 'test-results/junit.xml' }], ['github']]
+    ? [['list'], ['html'], ['junit', { outputFile: 'test-results/junit.xml' }], ['github']]
     : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: BASE_URL,
