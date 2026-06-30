@@ -10,21 +10,15 @@ import { test, expect } from '@fixtures/pages';
  * keeps those lockouts off any shared user, so the suite stays deterministic.
  */
 
-test('shows an error for invalid credentials @regression', async ({ loginPage, registeredUser }) => {
-    await loginPage.open();
-    await loginPage.login(registeredUser.email, 'wrong-password');
-
-    await expect(loginPage.errorMessage).toBeVisible();
-    expect(await loginPage.getErrorText()).toContain('Invalid');
-  });
-
 // TODO: Re-enable once CI can reach the app without Cloudflare's bot challenge
 // (e.g. by running the app locally in CI). On GitHub-hosted runners the public
 // site serves a "Verify you are human" interstitial, so the app never loads and
-// these UI login tests fail. They pass locally (residential IP). See the CI
+// the successful UI login test can fail. It passes locally (residential IP). See the CI
 // investigation notes.
-test.describe.skip('Login @smoke', () => {
+test.describe('Login @smoke', () => {
   test('customer can log in through the UI @regression', async ({ loginPage, isMobile }) => {
+    // eslint-disable-next-line playwright/no-skipped-test -- CI runners hit Cloudflare challenge before the successful UI login can complete.
+    test.skip(!!process.env.CI, 'Cloudflare bot challenge blocks the successful UI login on CI runners');
     const email = process.env.CUSTOMER_EMAIL;
     const password = process.env.CUSTOMER_PASSWORD;
     await loginPage.open();
@@ -40,6 +34,14 @@ test.describe.skip('Login @smoke', () => {
     // Successful login redirects to the account page and shows the account menu.
     await expect(loginPage.navMenu).toBeVisible();
     await expect(loginPage.navSignIn).toBeHidden();
+  });
+
+  test('shows an error for invalid credentials @regression', async ({ loginPage, registeredUser }) => {
+    await loginPage.open();
+    await loginPage.login(registeredUser.email, 'wrong-password');
+
+    await expect(loginPage.errorMessage).toBeVisible();
+    expect(await loginPage.getErrorText()).toContain('Invalid');
   });
 });
 
