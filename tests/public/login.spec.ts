@@ -27,9 +27,10 @@ test.describe('Login @smoke', () => {
           throw new Error('CUSTOMER_EMAIL and CUSTOMER_PASSWORD must be set in .env');
   }
     await loginPage.login(email, password);
-      // eslint-disable-next-line playwright/no-conditional-in-test
-    if(isMobile) {
-     await loginPage.toggleNavMenu.click();
+    // On mobile the account menu lives behind the collapsed nav toggler.
+    // eslint-disable-next-line playwright/no-conditional-in-test
+    if (isMobile) {
+      await loginPage.openNavMenu();
     }
     // Successful login redirects to the account page and shows the account menu.
     await expect(loginPage.navMenu).toBeVisible();

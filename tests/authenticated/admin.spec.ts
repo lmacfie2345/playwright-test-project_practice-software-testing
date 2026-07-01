@@ -11,7 +11,7 @@ test.describe('Admin @smoke', () => {
     await accountPage.goto('/');
     // eslint-disable-next-line playwright/no-conditional-in-test
     if(isMobile) {
-     await accountPage.toggleNavMenu.click();
+     await accountPage.openNavMenu();
     }
     await accountPage.navMenu.click();
 

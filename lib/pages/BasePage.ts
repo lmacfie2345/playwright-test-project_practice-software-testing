@@ -1,4 +1,4 @@
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * Base for all Page Objects. Holds the shared header/nav locators (data-test
@@ -34,6 +34,26 @@ export abstract class BasePage {
   /** Navigate to a path relative to baseURL and wait for the network to settle. */
   async goto(path = '/'): Promise<void> {
     await this.page.goto(path);
+  }
+
+  /**
+   * Expand the collapsed mobile nav (Bootstrap `navbar-toggler`).
+   *
+   * On desktop the toggler is hidden and the nav is always shown, so this is a
+   * no-op. On mobile a single click is flaky: clicks that land while Bootstrap's
+   * collapse animation is running (`.collapsing`) are swallowed, and the
+   * toggler's `aria-expanded` can drift out of sync with what's actually
+   * visible. So we drive by the real source of truth — `navMenu` visibility —
+   * and re-click until the menu is open (timeout if it never opens). 
+   */
+  async openNavMenu(): Promise<void> {
+    if (!(await this.toggleNavMenu.isVisible())) return; // desktop: always expanded
+    await expect(async () => {
+      if (!(await this.navMenu.isVisible())) {
+        await this.toggleNavMenu.click();
+      }
+      await expect(this.navMenu).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
   }
 
   /** Open the account/admin menu and sign out. */

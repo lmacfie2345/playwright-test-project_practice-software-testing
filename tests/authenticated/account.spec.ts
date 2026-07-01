@@ -19,7 +19,7 @@ test.describe('Customer account @smoke', () => {
  
     // eslint-disable-next-line playwright/no-conditional-in-test
     if(isMobile) {
-     await accountPage.toggleNavMenu.click();
+     await accountPage.openNavMenu();
     }
     await expect(accountPage.navMenu).toBeVisible();
     await expect(accountPage.navSignIn).toBeHidden();
