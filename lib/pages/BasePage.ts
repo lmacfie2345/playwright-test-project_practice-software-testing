@@ -56,6 +56,16 @@ export abstract class BasePage {
     }).toPass({ timeout: 10000 });
   }
 
+    async openNavSignIn(): Promise<void> {
+    if (!(await this.toggleNavMenu.isVisible())) return; // desktop: always expanded
+    await expect(async () => {
+      if (!(await this.navSignIn.isVisible())) {
+        await this.toggleNavMenu.click();
+      }
+      await expect(this.navSignIn).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 10000 });
+  }
+
   /** Open the account/admin menu and sign out. */
   async signOut(): Promise<void> {
     await this.navMenu.click();

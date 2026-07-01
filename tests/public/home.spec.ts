@@ -18,7 +18,7 @@ test.describe('Home / catalog @smoke', () => {
     await catalogPage.open();
       // eslint-disable-next-line playwright/no-conditional-in-test
      if(isMobile) {
-     await catalogPage.openNavMenu();
+     await catalogPage.openNavSignIn();
     }
     await expect(catalogPage.navSignIn).toBeVisible();
     await expect(catalogPage.navMenu).toBeHidden();
