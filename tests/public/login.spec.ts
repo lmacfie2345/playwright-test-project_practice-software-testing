@@ -10,15 +10,19 @@ import { test, expect } from '@fixtures/pages';
  * keeps those lockouts off any shared user, so the suite stays deterministic.
  */
 
-// TODO: Re-enable once CI can reach the app without Cloudflare's bot challenge
-// (e.g. by running the app locally in CI). On GitHub-hosted runners the public
-// site serves a "Verify you are human" interstitial, so the app never loads and
-// the successful UI login test can fail. It passes locally (residential IP). See the CI
-// investigation notes.
+// The hosted public site serves a Cloudflare "Verify you are human" interstitial
+// to GitHub-hosted runners, so the successful UI login can't complete there. It
+// now runs against the local Dockerized app in CI's local gate (localhost, no
+// Cloudflare), and locally against any target (residential IPs pass the
+// challenge). Only skipped when running against the hosted app on CI.
 test.describe('Login @smoke', () => {
-  test('customer can log in through the UI @regression', async ({ loginPage, isMobile }) => {
-    // eslint-disable-next-line playwright/no-skipped-test -- CI runners hit Cloudflare challenge before the successful UI login can complete.
-    test.skip(!!process.env.CI, 'Cloudflare bot challenge blocks the successful UI login on CI runners');
+  test('customer can log in through the UI @regression', async ({ loginPage, isMobile, baseURL }) => {
+    const isLocalApp = /localhost|127\.0\.0\.1/.test(baseURL ?? '');
+    // eslint-disable-next-line playwright/no-skipped-test -- hosted app is behind Cloudflare's bot challenge on CI runners.
+    test.skip(
+      !!process.env.CI && !isLocalApp,
+      'Cloudflare bot challenge blocks the successful UI login against the hosted app on CI runners',
+    );
     const email = process.env.CUSTOMER_EMAIL;
     const password = process.env.CUSTOMER_PASSWORD;
     await loginPage.open();
