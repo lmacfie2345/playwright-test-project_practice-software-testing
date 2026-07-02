@@ -8,8 +8,165 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
-    name: E2E (all browsers)
+  # Gate: build the app from the fork's source, run it locally in Docker, and run
+  # a fast Chromium-only pass against it. Only if this passes do we hit the hosted app.
+  local-e2e:
+    name: E2E (local Docker app — Chromium gate)
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    env:
+      CI: 'true'
+      BASE_URL: 'http://localhost:4200'
+      API_URL: 'http://localhost:8091'
+      CUSTOMER_EMAIL: ${{ secrets.CUSTOMER_EMAIL }}
+      CUSTOMER_PASSWORD: ${{ secrets.CUSTOMER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - name: Checkout test repo
+        uses: actions/checkout@v4
+
+      - name: Checkout app under test (fork)
+        uses: actions/checkout@v4
+        with:
+          repository: lmacfie2345/practice-software-testing
+          ref: main
+          path: app
+
+      - name: Start app (build from source, minimal stack)
+        working-directory: app
+        run: docker compose -f docker-compose.yml up -d --force-recreate
+      
+      - name: Sleep for 30 seconds (wait for containers)
+        working-directory: app
+        run: sleep 30s
+        
+      - name: Install Composer dependencies 📦
+        working-directory: app
+        run: docker compose -f docker-compose.yml exec -T -u root laravel-api composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi
+
+      - name: Fix Laravel storage permissions 🔐
+        working-directory: app
+        run: |
+          docker compose -f docker-compose.yml exec -T -u root laravel-api sh -c \
+            "chown -R www-data:www-data storage bootstrap/cache && chmod -R 775 storage bootstrap/cache"
+
+      - name: Wait for database to be ready 🗄️
+        working-directory: app
+        run: |
+          echo "Waiting for MariaDB..."
+          for i in $(seq 1 30); do
+            if docker compose -f docker-compose.yml exec -T mariadb mysqladmin ping -h localhost -u root -proot --silent 2>/dev/null; then
+              echo "MariaDB is ready!"
+              break
+            fi
+            echo "Attempt $i/30 - not ready yet, waiting 2s..."
+            sleep 2
+          done
+
+      - name: Create & Seed database 🌱
+        working-directory: app
+        run: |
+          docker compose -f docker-compose.yml exec -T laravel-api php artisan migrate:refresh --seed
+     
+      - name: Wait for app to be healthy
+        shell: bash
+        run: |
+          wait_for() {
+            local url="$1" name="$2" tries=120
+            echo "Waiting for $name at $url ..."
+            for i in $(seq 1 $tries); do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "$url" || echo 000)
+              if [ "$code" = "200" ]; then
+                echo "$name is up (HTTP 200) after $((i*5))s."
+                return 0
+              fi
+              sleep 5
+            done
+            echo "::error::$name did not become healthy at $url within $((tries*5))s (last HTTP $code)."
+            return 1
+          }
+          wait_for "http://localhost:8091/status" "API"
+          wait_for "http://localhost:4200" "UI"
+
+      - name: Smoke-check API login
+        shell: bash
+        run: |
+          echo "POST /users/login (customer) ..."
+          body_file="$(mktemp)"
+          status=$(curl -s -o "$body_file" -w '%{http_code}' \
+            -X POST 'http://localhost:8091/users/login' \
+            -H 'Content-Type: application/json' \
+            --data-raw "{\"email\":\"${CUSTOMER_EMAIL}\",\"password\":\"${CUSTOMER_PASSWORD}\"}")
+          echo "HTTP status: $status"
+          echo "--- response body ---"
+          cat "$body_file"; echo
+          echo "---------------------"
+          if [ "$status" != "200" ]; then
+            echo "::error::API login smoke check failed with HTTP $status (see body above)."
+            echo "::group::laravel-api logs"
+            docker compose -f app/docker-compose.yml exec -T laravel-api tail -n 200 storage/logs/laravel.log || true
+            echo "::endgroup::"
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get Playwright version
+        id: pw
+        shell: bash
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright browsers
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps
+
+      - name: Install Playwright OS deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps
+
+      - name: Run Playwright tests (Chromium against local app)
+        run: npm run test:chromium
+
+      - name: Dump app logs on failure
+        if: failure()
+        working-directory: app
+        run: docker compose -f docker-compose.yml logs --no-color
+
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-local
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload test-results (screenshots/videos/traces)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-local
+          path: test-results/
+          retention-days: 14
+
+  # Final check against the shared hosted environment — only runs if the local gate passed.
+  hosted-e2e:
+    name: E2E (hosted app — all browsers)
+    needs: local-e2e
     timeout-minutes: 60
     runs-on: ubuntu-latest
     env:
@@ -62,7 +219,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-hosted
           path: playwright-report/
           retention-days: 14
 
@@ -70,6 +227,6 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-hosted
           path: test-results/
           retention-days: 14
