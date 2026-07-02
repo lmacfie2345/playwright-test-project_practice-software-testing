@@ -18,7 +18,6 @@ jobs:
       CI: 'true'
       BASE_URL: 'http://localhost:4200'
       API_URL: 'http://localhost:8091'
-      RESET_DB: 'true'
       CUSTOMER_EMAIL: ${{ secrets.CUSTOMER_EMAIL }}
       CUSTOMER_PASSWORD: ${{ secrets.CUSTOMER_PASSWORD }}
       ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
@@ -36,8 +35,27 @@ jobs:
 
       - name: Start app (build from source, minimal stack)
         working-directory: app
-        run: docker compose -f docker-compose.yml up -d --build
+        run: docker compose -f docker-compose.yml up -d --force-recreate
+      
+      - name: Install Composer dependencies 📦
+        run: docker compose exec -T -u root laravel-api composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-ffi
+      
+      - name: Wait for database to be ready 🗄️
+        run: |
+          echo "Waiting for MariaDB..."
+          for i in $(seq 1 30); do
+            if docker compose exec -T mariadb mysqladmin ping -h localhost -u root -proot --silent 2>/dev/null; then
+              echo "MariaDB is ready!"
+              break
+            fi
+            echo "Attempt $i/30 - not ready yet, waiting 2s..."
+            sleep 2
+          done
 
+      - name: Create & Seed database 🌱
+        run: |
+          docker compose exec -T laravel-api php artisan migrate:refresh --seed
+     
       - name: Wait for app to be healthy
         shell: bash
         run: |
